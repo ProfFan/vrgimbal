@@ -3,6 +3,7 @@
 /*************************/
 
 #include "main.h"
+#include "calibrationRoutines.h"
 
 /* FS_SEL | Full Scale Range   | LSB Sensitivity
  * -------+--------------------+----------------
@@ -23,7 +24,9 @@
 #if defined ( IMU_BRUGI )
 
 //#define GRAVITY 16384.0f
-#define GRAVITY 15500.0f
+#define IMU_GRAVITY 15500.0f
+
+void gyroOffsetCalibration_LSQ(MPU6050 * p_mpu, int16_t * p_offsets);
 
 void initResolutionDevider()
 {
@@ -37,8 +40,12 @@ void initResolutionDevider()
 // This functions performs an initial gyro offset calibration
 // INCLUDING motion detection
 // Board should be still for some seconds
-void gyroOffsetCalibration()
+void gyroOffsetCalibration(MPU6050 * p_mpu, int16_t * p_offsets)
 {
+
+	gyroOffsetCalibration_LSQ(p_mpu, p_offsets);
+	return;
+
   int i;
   #define TOL 64
   #define GYRO_INTERATIONS 2000
@@ -63,23 +70,23 @@ void gyroOffsetCalibration()
       for (i=0; i<70; i++) { // wait 0.7sec if calibration failed
         delayMicroseconds(10000); // 10 ms 
       }
-      mpu.getRotation(&gyro[0], &gyro[1], &gyro[2]); 
+      p_mpu->getRotation(&gyro[0], &gyro[1], &gyro[2]);
       for (i=0; i<3; i++) {
         fp_gyroOffset[i] = 0;
         prevGyro[i]=gyro[i];
       }
     }
     
-    mpu.getRotation(&gyro[0], &gyro[1], &gyro[2]);  
+    p_mpu->getRotation(&gyro[0], &gyro[1], &gyro[2]);
 
     for (i=0; i<3; i++) {
       if(abs(prevGyro[i] - gyro[i]) > TOL) {
         tiltDetected++;
-        //Serial.print(F(" i="));Serial.print(i);
-        //Serial.print(F(" calibGCounter="));Serial.print(calibGCounter);
-        //Serial.print(F(" diff="));Serial.print(prevGyro[i] - gyro[i]);
-        //Serial.print(F(" gyroi="));Serial.print(gyro[i]);
-        //Serial.print(F(" prevgyroi="));Serial.println(prevGyro[i]);
+        //cliSerial->print(F(" i="));cliSerial->print(i);
+        //cliSerial->print(F(" calibGCounter="));cliSerial->print(calibGCounter);
+        //cliSerial->print(F(" diff="));cliSerial->print(prevGyro[i] - gyro[i]);
+        //cliSerial->print(F(" gyroi="));cliSerial->print(gyro[i]);
+        //cliSerial->print(F(" prevgyroi="));cliSerial->println(prevGyro[i]);
         break;
       }
     } 
@@ -92,7 +99,7 @@ void gyroOffsetCalibration()
     calibGCounter--;
     if(tiltDetected>=1)
     {
-      Serial.println(F("Motion detected during Gyro calibration. Starting over!"));
+      cliSerial->println(F("Motion detected during Gyro calibration. Starting over!"));
       calibGCounter=GYRO_INTERATIONS;
       tiltDetected=0;
     }
@@ -100,11 +107,134 @@ void gyroOffsetCalibration()
 
   // put result into integer
   for (i=0; i<3; i++) {
-    gyroOffset[i] = fp_gyroOffset[i];
-    //Serial.print(F("gyroOffset="));Serial.println(fp_gyroOffset[i], 3);
+    //gyroOffset[i] = fp_gyroOffset[i];
+	p_offsets[i] = fp_gyroOffset[i];
+    cliSerial->print(F("gyroOffset="));cliSerial->println(fp_gyroOffset[i], 3);
   }
 
   enableMotorUpdates = true;
+}
+
+void gyroOffsetCalibration_LSQ(MPU6050 * p_mpu, int16_t * p_offsets)
+{
+  int i;
+  #define TOL 64
+  #define GYRO_INTERATIONS 2000
+  int16_t prevGyro[3],gyro[3];
+  float fp_gyroOffset[3];
+  uint8_t tiltDetected = 0;
+  int calibGCounter = GYRO_INTERATIONS;
+
+  // Set voltage on all motor phases to zero
+  enableMotorUpdates = false;
+
+  // wait 1 second
+  for (i=0; i<100; i++) {
+    delayMicroseconds(10000); // 1 ms
+  }
+
+
+  LSQIntermediate lsq;
+  lsq_init(&lsq);
+
+  while(calibGCounter>0)
+  {
+
+    if(calibGCounter==GYRO_INTERATIONS)
+    {
+      for (i=0; i<70; i++) { // wait 0.7sec if calibration failed
+        delayMicroseconds(10000); // 10 ms
+      }
+      p_mpu->getRotation(&gyro[0], &gyro[1], &gyro[2]);
+      for (i=0; i<3; i++) {
+        prevGyro[i]=gyro[i];
+      }
+
+      //ricomincio da capo
+      lsq_init(&lsq);
+
+    }
+
+    p_mpu->getRotation(&gyro[0], &gyro[1], &gyro[2]);
+
+    for (i=0; i<3; i++) {
+      if(abs(prevGyro[i] - gyro[i]) > TOL) {
+        tiltDetected++;
+        //cliSerial->print(F(" i="));cliSerial->print(i);
+        //cliSerial->print(F(" calibGCounter="));cliSerial->print(calibGCounter);
+        //cliSerial->print(F(" diff="));cliSerial->print(prevGyro[i] - gyro[i]);
+        //cliSerial->print(F(" gyroi="));cliSerial->print(gyro[i]);
+        //cliSerial->print(F(" prevgyroi="));cliSerial->println(prevGyro[i]);
+        break;
+      }
+    }
+
+    for (i=0; i<3; i++) {
+        prevGyro[i]=gyro[i];
+    }
+    lsq_accumulate(&lsq, gyro[0], gyro[1], gyro[2]);
+
+    calibGCounter--;
+    if(tiltDetected>=1)
+    {
+      cliSerial->println(F("Motion detected during Gyro calibration. Starting over!"));
+      calibGCounter=GYRO_INTERATIONS;
+      tiltDetected=0;
+    }
+  }
+
+  float fRadius = 0;
+  lsq_calculate(&lsq, 10, 0.0f, &(fp_gyroOffset[0]),&(fp_gyroOffset[1]), &(fp_gyroOffset[2]), &fRadius);
+
+  // put result into integer
+  for (i=0; i<3; i++) {
+    //gyroOffset[i] = fp_gyroOffset[i];
+	p_offsets[i] = fp_gyroOffset[i];
+    cliSerial->print(F("gyroOffset="));cliSerial->println(fp_gyroOffset[i], 3);
+  }
+
+  enableMotorUpdates = true;
+}
+
+
+
+// calibrate_accel - perform accelerometer calibration including providing user instructions and feedback
+// Gauss-Newton accel calibration routines borrowed from Rolfe Schmidt
+// blog post describing the method: http://chionophilous.wordpress.com/2011/10/24/accelerometer-calibration-iv-1-implementing-gauss-newton-on-an-atmega/
+// original sketch available at http://rolfeschmidt.com/mathtools/skimetrics/adxl_gn_calibration.pde
+bool accelCalibration(MPU6050 * p_mpu, float * offsets, float * scales)
+{
+
+	enableMotorUpdates = false;
+	switchOffMotors();
+
+
+	Vector3f offset;
+	Vector3f scale;
+
+	offset.x = offsets[0];
+	offset.y = offsets[1];
+	offset.z = offsets[2];
+	scale.x = scales[0];
+	scale.y = scales[1];
+	scale.z = scales[2];
+
+
+	bool ret = calibrate_accel(p_mpu, offset, scale,
+			delay, flash_leds, setup_printf_P, setup_wait_key);
+	cliSerial->println("Place gimbal level and press any key.");
+	setup_wait_key();
+
+	offsets[0] = offset.x;
+	offsets[1] = offset.y;
+	offsets[2] = offset.z;
+	scales[0] = scale.x;
+	scales[1] = scale.y;
+	scales[2] = scale.z;
+
+	enableMotorUpdates = true;
+
+	return ret;
 }
 
 #elif defined ( IMU_AP )

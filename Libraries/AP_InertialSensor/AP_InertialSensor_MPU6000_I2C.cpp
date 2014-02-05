@@ -203,6 +203,8 @@ int16_t AP_InertialSensor_MPU6000_I2C::_mpu6000_product_id = AP_PRODUCT_ID_NONE;
 
 static volatile uint8_t _new_data;
 
+int16_t AP_InertialSensor_MPU6000_I2C::_last_raw[7];
+
 // variables to calculate time period over which a group of samples were collected
 static volatile uint32_t _delta_time_micros = 1;   // time period overwhich samples were collected (initialise to non-zero number but will be overwritten on 2nd read in any case)
 static volatile uint32_t _delta_time_start_micros = 0;  // time we start collecting sample (reset on update)
@@ -222,7 +224,7 @@ Quaternion AP_InertialSensor_MPU6000_I2C::quaternion;			// holds the 4 quaternio
  *  variants however
  */
 
-AP_InertialSensor_MPU6000_I2C::AP_InertialSensor_MPU6000_I2C( HardwareI2C *i2c_dev, int interrupt_pin, FastSerial *ser_port)
+AP_InertialSensor_MPU6000_I2C::AP_InertialSensor_MPU6000_I2C( HardwareI2C *i2c_dev, int interrupt_pin, FastSerial *ser_port, uint8_t address = MPU6000_ADDR_DEFAULT)
 {
   serPort = ser_port;
   _temp = 0;
@@ -231,6 +233,8 @@ AP_InertialSensor_MPU6000_I2C::AP_InertialSensor_MPU6000_I2C( HardwareI2C *i2c_d
   _I2Cx = i2c_dev;
   _interrupt_pin = interrupt_pin;
   //_scheduler = NULL;
+
+  _address = address;
 }
 
 uint16_t AP_InertialSensor_MPU6000_I2C::_init_sensor( AP_PeriodicProcess * scheduler, Sample_rate sample_rate )
@@ -317,6 +321,21 @@ int16_t AP_InertialSensor_MPU6000_I2C::i2c_transfer_16(uint8_t address)
 	return (((int16_t)byte_H)<<8) | byte_L;
 }
 
+
+void AP_InertialSensor_MPU6000_I2C::get_raw_gyro(Vector3i * g)
+{
+	g->x = _last_raw[4];
+	g->y = _last_raw[5];
+	g->z = _last_raw[6];
+}
+
+void AP_InertialSensor_MPU6000_I2C::get_raw_acc(Vector3i * g)
+{
+	g->x = _last_raw[0];
+	g->y = _last_raw[1];
+	g->z = _last_raw[2];
+}
+
 /*
   this is called from a timer interrupt to read data from the MPU6000
   and add it to _sum[]
@@ -335,7 +354,15 @@ void AP_InertialSensor_MPU6000_I2C::read(uint32_t )
     // now read the data
     byte addr = MPUREG_ACCEL_XOUT_H | 0x80;
     for (uint8_t i=0; i<7; i++) {
-        _sum[i] += i2c_transfer_16(addr + 2*i);
+    	if (_count == 0) {
+    		_last_raw[i]= i2c_transfer_16(addr + 2*i);
+    		_sum[i] +=_last_raw[i];
+    	} else
+    	{
+    	    _sum[i] += i2c_transfer_16(addr + 2*i);
+    	}
+
+
     }
     _count++;
     if (_count == 0) {

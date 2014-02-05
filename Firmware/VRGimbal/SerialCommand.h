@@ -40,6 +40,9 @@
 class SerialCommand {
   public:
     SerialCommand(FastSerial * ser_port);      // Constructor
+
+    void setSerialPort(FastSerial * ser_port);
+
     void addCommand(const char *command, void(*function)());  // Add a command to the processing dictionary.
     void setDefaultHandler(void (*function)(const char *));   // A handler to call when no valid command received.
 

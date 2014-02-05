@@ -28,11 +28,14 @@ endif
 
 cppSRCS_$(d) := 
 cppSRCS_$(d) += boards/$(BOARD)/$(BOARD).cpp
+
 cppSRCS_$(d) += comm/BetterStream.cpp
 #cppSRCS_$(d) += comm/DmaChannel.cpp
 cppSRCS_$(d) += comm/FastSerial.cpp
 cppSRCS_$(d) += comm/HardwareI2C.cpp
 cppSRCS_$(d) += comm/HardwareSPI.cpp
+cppSRCS_$(d) += comm/USBSerial.cpp
+
 cppSRCS_$(d) += boards.cpp
 cppSRCS_$(d) += cxxabi-compat.cpp
 cppSRCS_$(d) += ext_interrupts.cpp

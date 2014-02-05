@@ -79,6 +79,19 @@ Compass::get_declination()
   return _declination.get();
 }
 
+void
+Compass::set_learn(bool learn)
+{
+	_learn.set_and_save((learn ? 1 : 0));
+}
+
+bool
+Compass::get_learn()
+{
+	return (_learn != 0);
+}
+
+
 
 float
 Compass::calculate_heading(float roll, float pitch)

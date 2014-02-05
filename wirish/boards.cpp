@@ -37,6 +37,8 @@
 #include <timer.h>
 #include <adc.h>
 
+#include "usb.h"
+
 static void setupFlash(void);
 static void setupClocks(void);
 static void setupNVIC(void);
@@ -53,6 +55,9 @@ void init(void) {
     setupADC();
     setupTimers();
     PWR_init();
+
+    setupUSB();
+
     boardInit();
 
 }

@@ -135,3 +135,5 @@ template void Vector3<float>::rotate(enum Rotation);
 template float Vector3<float>::length(void) const;
 template Vector3<float> Vector3<float>::operator %(const Vector3<float> &v) const;
 template float Vector3<float>::operator *(const Vector3<float> &v) const;
+
+template float Vector3<int16_t>::length(void) const;

@@ -338,6 +338,15 @@ bool AP_Compass_HMC5843::read()
    mag_z = rot_mag.z;
    healthy = true;
 
+
+//   //TEO 20130827
+//   //introduco una correzione di prova per gestire correttamente gli assi di BruGi
+//   int16_t tmp = mag_x;
+//   mag_x = mag_y;
+//   mag_y = tmp;
+//   mag_z = -mag_z;
+
+
    return true;
 }
 

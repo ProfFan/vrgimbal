@@ -1080,7 +1080,11 @@ void AP_Param::show_all(BetterStream * ser_port)
         	ser_port->printf_P(PSTR("%s: %ld\n"), s, (long)((AP_Int32 *)ap)->get());
             break;
         case AP_PARAM_FLOAT:
-        	ser_port->printf_P(PSTR("%s: %f\n"), s, ((AP_Float *)ap)->get());
+//        	ser_port->printf_P(PSTR("%s: %f\n"), s, ((AP_Float *)ap)->get());
+        	//per F1 meglio usare il print(float)
+        	ser_port->printf_P(PSTR("%s: "), s);
+        	ser_port->print((float)((AP_Float *)ap)->get(), 5);
+        	ser_port->print("\n");
             break;
         default:
             break;
