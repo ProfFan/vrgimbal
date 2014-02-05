@@ -1,3 +1,23 @@
+/// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
+/*
+    This file is part of VRGimbal by VirtualRobotix Italia s.c.a.r.l..
+
+    VRGimbal is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    VRGimbal is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with VRGimbal.  If not, see <http://www.gnu.org/licenses/>.
+
+    Please refer to http://vrgimbal.wordpress.com for more information
+*/
+
 /*
  * MPU6050.cpp
  *
@@ -1867,9 +1887,9 @@ int16_t MPU6050::getAccelerationY() {
  * @see getMotion6()
  * @see MPU6050_RA_ACCEL_ZOUT_H
  */
-int16_t MPU6050::getAccelerationN(char idx) {    
-    char idxa = idx<<1;
-    char idxb = idxa+1;
+int16_t MPU6050::getAccelerationN(unsigned char idx) {
+    unsigned char idxa = idx<<1;
+    unsigned char idxb = idxa+1;
     _I2Cx->read(devAddr, (uint8_t)MPU6050_RA_ACCEL_XOUT_H, (uint8_t)6, buffer);
     return (((int16_t)buffer[idxa]) << 8) | buffer[idxb];
 }
