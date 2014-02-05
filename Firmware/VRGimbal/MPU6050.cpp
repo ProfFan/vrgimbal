@@ -1773,6 +1773,34 @@ void MPU6050::getMotion6(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int
     *gy = (((int16_t)buffer[10]) << 8) | buffer[11];
     *gz = (((int16_t)buffer[12]) << 8) | buffer[13];
 }
+
+/** Get raw 6-axis motion sensor readings (accel/gyro) and Temperature for calibration.
+ * Retrieves all currently available motion sensor values.
+ * @param ax 16-bit signed integer container for accelerometer X-axis value
+ * @param ay 16-bit signed integer container for accelerometer Y-axis value
+ * @param az 16-bit signed integer container for accelerometer Z-axis value
+ * @param gx 16-bit signed integer container for gyroscope X-axis value
+ * @param gy 16-bit signed integer container for gyroscope Y-axis value
+ * @param gz 16-bit signed integer container for gyroscope Z-axis value
+ * @param t  16-bit signed integer container for temperature value
+ * @see getAcceleration()
+ * @see getRotation()
+ * @see MPU6050_RA_ACCEL_XOUT_H
+ */
+void MPU6050::getMotion7(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int16_t* gy, int16_t* gz, int16_t* t) {
+    _I2Cx->read(devAddr, (uint8_t)MPU6050_RA_ACCEL_XOUT_H, (uint8_t)14, buffer);
+    *ax = (((int16_t)buffer[0]) << 8) | buffer[1];
+    *ay = (((int16_t)buffer[2]) << 8) | buffer[3];
+    *az = (((int16_t)buffer[4]) << 8) | buffer[5];
+
+    *t = (((int16_t)buffer[6]) << 8) | buffer[7];
+
+    *gx = (((int16_t)buffer[8]) << 8) | buffer[9];
+    *gy = (((int16_t)buffer[10]) << 8) | buffer[11];
+    *gz = (((int16_t)buffer[12]) << 8) | buffer[13];
+}
+
+
 /** Get 3-axis accelerometer readings.
  * These registers store the most recent accelerometer measurements.
  * Accelerometer measurements are written to these registers at the Sample Rate
@@ -3072,23 +3100,23 @@ bool MPU6050::writeMemoryBlock(const uint8_t *data, uint16_t dataSize, uint8_t b
             setMemoryStartAddress(address);
             _I2Cx->read(devAddr, (uint8_t)MPU6050_RA_MEM_R_W, chunkSize, verifyBuffer);
             if (memcmp(progBuffer, verifyBuffer, chunkSize) != 0) {
-                /*Serial.print("Block write verification error, bank ");
-                Serial.print(bank, DEC);
-                Serial.print(", address ");
-                Serial.print(address, DEC);
-                Serial.print("!\nExpected:");
+                /*cliSerial->print("Block write verification error, bank ");
+                cliSerial->print(bank, DEC);
+                cliSerial->print(", address ");
+                cliSerial->print(address, DEC);
+                cliSerial->print("!\nExpected:");
                 for (j = 0; j < chunkSize; j++) {
-                    Serial.print(" 0x");
-                    if (progBuffer[j] < 16) Serial.print("0");
-                    Serial.print(progBuffer[j], HEX);
+                    cliSerial->print(" 0x");
+                    if (progBuffer[j] < 16) cliSerial->print("0");
+                    cliSerial->print(progBuffer[j], HEX);
                 }
-                Serial.print("\nReceived:");
+                cliSerial->print("\nReceived:");
                 for (uint8_t j = 0; j < chunkSize; j++) {
-                    Serial.print(" 0x");
-                    if (verifyBuffer[i + j] < 16) Serial.print("0");
-                    Serial.print(verifyBuffer[i + j], HEX);
+                    cliSerial->print(" 0x");
+                    if (verifyBuffer[i + j] < 16) cliSerial->print("0");
+                    cliSerial->print(verifyBuffer[i + j], HEX);
                 }
-                Serial.print("\n");*/
+                cliSerial->print("\n");*/
                 free(verifyBuffer);
                 if (useProgMem) free(progBuffer);
                 return false; // uh oh.
@@ -3139,12 +3167,12 @@ bool MPU6050::writeDMPConfigurationSet(const uint8_t *data, uint16_t dataSize, b
         // write data or perform special action
         if (length > 0) {
             // regular block of data to write
-            /*Serial.print("Writing config block to bank ");
-            Serial.print(bank);
-            Serial.print(", offset ");
-            Serial.print(offset);
-            Serial.print(", length=");
-            Serial.println(length);*/
+            /*cliSerial->print("Writing config block to bank ");
+            cliSerial->print(bank);
+            cliSerial->print(", offset ");
+            cliSerial->print(offset);
+            cliSerial->print(", length=");
+            cliSerial->println(length);*/
             if (useProgMem) {
                 if (sizeof(progBuffer) < length) progBuffer = (uint8_t *)realloc(progBuffer, length);
                 for (j = 0; j < length; j++) progBuffer[j] = pgm_read_byte(data + i + j);
@@ -3164,9 +3192,9 @@ bool MPU6050::writeDMPConfigurationSet(const uint8_t *data, uint16_t dataSize, b
             } else {
                 special = data[i++];
             }
-            /*Serial.print("Special command code ");
-            Serial.print(special, HEX);
-            Serial.println(" found...");*/
+            /*cliSerial->print("Special command code ");
+            cliSerial->print(special, HEX);
+            cliSerial->println(" found...");*/
             if (special == 0x01) {
                 // enable DMP-related interrupts
                 

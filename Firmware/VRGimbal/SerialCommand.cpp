@@ -61,6 +61,16 @@ SerialCommand::SerialCommand(FastSerial * ser_port)
   clearBuffer();
 }
 
+
+void SerialCommand::setSerialPort(FastSerial * ser_port)
+{
+	if (_ser_port != ser_port)
+	{
+		clearBuffer();
+		_ser_port = ser_port;
+	}
+}
+
 /**
  * Adds a "command" and a handler function to the list of available commands.
  * This is used for matching a found token in the buffer, and gives the pointer
@@ -96,8 +106,8 @@ void SerialCommand::setDefaultHandler(void (*function)(const char *)) {
  */
 void SerialCommand::readSerial() {
 
-	//while (_ser_port->available() > 0) {
-	while (true) {
+	while (_ser_port->available() > 0) {
+	//while (true) {
 	  char inChar = 0;
     //char inChar = _ser_port->read();   // Read single available character, there may be more waiting
 	  int ic = _ser_port->read();

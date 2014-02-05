@@ -3,6 +3,9 @@
 
 #include <hal.h>
 
+//#define TEST_SCAMBIA_PORTA_PWM
+
+
 #define CYCLES_PER_MICROSECOND  (SystemCoreClock/1000000)
 #define SYSTICK_RELOAD_VAL      (CYCLES_PER_MICROSECOND*1000-1)
 
@@ -17,7 +20,12 @@ void boardInit(void);
 /* LEDs ********************************************/
 #define BOARD_LED_RED_PIN       46  //PC14
 #define BOARD_LED_GRE_PIN       47  //PC15
+
+#ifdef TEST_SCAMBIA_PORTA_PWM
+#define BOARD_IR_CMD	        3  //PA3
+#else
 #define BOARD_IR_CMD	        41  //PC9
+#endif
 
 /* MOTORs ********************************************/
 
@@ -33,14 +41,25 @@ void boardInit(void);
 #define BOARD_MOT2_CMD_C        24  //PB8
 #define BOARD_MOT2_ISENSE       34  //PC2
 
+#ifdef TEST_SCAMBIA_PORTA_PWM
+
+#define BOARD_MOT3_CMD_A        0  //PA0
+#define BOARD_MOT3_CMD_B        1  //PA1
+#define BOARD_MOT3_CMD_C        2  //PA2
+#define BOARD_MOT3_ISENSE       35  //PC3
+
+#else
 #define BOARD_MOT3_CMD_A        38  //PC6
 #define BOARD_MOT3_CMD_B        39  //PC7
 #define BOARD_MOT3_CMD_C        40  //PC8
 #define BOARD_MOT3_ISENSE       35  //PC3
 
+#endif
 
 /* USB *********************************************/
 #define BOARD_USB_DISC          36  //PC4
+#define BOARD_USB_DISC_DEV      _GPIOC
+#define BOARD_USB_DISC_BIT      4
 #define BOARD_USBM  	    	11  //PA11
 #define BOARD_USBP	    	    12  //PA12
 
@@ -55,10 +74,19 @@ void boardInit(void);
 
 
 /* REMOTE COMMAND INPUT ********************************/
+#ifdef TEST_SCAMBIA_PORTA_PWM
+#define BOARD_PWM_IN0            38  //PC6
+#define BOARD_PWM_IN1  	         39  //PC7
+#define BOARD_PWM_IN2      	     40  //PC8
+#define BOARD_PWM_IN3          	 41  //PC9
+
+#else
+
 #define BOARD_PWM_IN0            0  //PA0
 #define BOARD_PWM_IN1  	         1  //PA1
 #define BOARD_PWM_IN2      	     2  //PA2
 #define BOARD_PWM_IN3          	 3  //PA3
+#endif
 
 /* IMU *********************************************/
 #define BOARD_INT_IMU	        25  //PB9
@@ -76,7 +104,7 @@ void boardInit(void);
 /* EEPROM *********************************************/
 #define BOARD_CS_EEPROM	        28  //PB12
 
-#define BOARD_EEPROM_SIZE		128
+#define BOARD_EEPROM_SIZE		512 //128
 //vedi config SPI sotto
 
 /* USARTs *********************************************/

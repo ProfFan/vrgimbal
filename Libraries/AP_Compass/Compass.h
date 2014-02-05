@@ -119,6 +119,12 @@ public:
 	virtual void set_declination(float radians);
 	float get_declination();
 
+
+	virtual void set_learn(bool learn);
+	bool get_learn();
+
+
+
     static const struct AP_Param::GroupInfo var_info[];
 
 protected:

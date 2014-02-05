@@ -196,15 +196,26 @@ AP_InertialSensor::_init_gyro(void (*delay_cb)(unsigned long t), void (*flash_le
 
 
         gyro_sum.zero();
-        //for (i=0; i<200; i++) {
-        for (i=0; i<10; i++) {
+        for (i=0; i<200; i++) {
+        //for (i=0; i<10; i++) {
         	for(int z = 0; z < 10; z++){
         		read();
         		if (_serial)
         				_serial->printf_P(PSTR("."));
         	}
+
+
+
             update();
             ins_gyro = get_gyro();
+//            if (_serial) {
+//            	_serial->println();
+//                   _serial->print(ins_gyro.x, 5); _serial->print(" ");
+//                   _serial->print(ins_gyro.y, 5); _serial->print(" ");
+//                   _serial->print(ins_gyro.z, 5); _serial->print(" ");
+//
+//            }
+
             gyro_sum += ins_gyro;
             if (i % 40 == 20) {
                 FLASH_LEDS(true);
@@ -227,8 +238,12 @@ AP_InertialSensor::_init_gyro(void (*delay_cb)(unsigned long t), void (*flash_le
             _gyro_offset = last_average;
 
             // all done
-            if (_serial)
-        		_serial->printf_P(PSTR("\ngyro converged: diff=%f dps\n"), ToDeg(diff_norm));
+            if (_serial) {
+        		//_serial->printf_P(PSTR("\ngyro converged: diff=%f dps\n"), ToDeg(diff_norm));
+            	_serial->printf_P(PSTR("\ngyro converged: diff="));
+            	_serial->print(ToDeg(diff_norm), 5);
+            	_serial->printf_P(PSTR(" dps\n"));
+            }
             return;
         } else if (diff_norm < best_diff) {
             best_diff = diff_norm;

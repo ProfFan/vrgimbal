@@ -2,6 +2,37 @@
 // Fast arctan2
 #include "fastMathRoutines.h"
 
+uint32_t measure_micro_delay(uint32_t microStart, uint32_t microEnd)
+{
+	if (microStart > microEnd)
+	{
+		//c'è stato un overflow, devo correggere
+		uint32_t halflap = 0xFFFFFFFF - microStart;
+		return (microEnd + halflap);
+	}
+	return (microEnd - microStart);
+}
+
+
+int32_t inormalize_val(int32_t y, int32_t period)
+{
+	if (y > period) {
+		y = y % period;
+	} else if (y < - period) {
+		y = -y;
+		y = y % period;
+		y = period - y;
+	}
+
+	if (y > period / 2) {
+		return y - period;
+	} else if (y < - period / 2) {
+		return y + period;
+	} else {
+		return y;
+	}
+}
+
 float ultraFastAtan2(float y, float x)
 {
   float angle; 
@@ -24,9 +55,10 @@ float ultraFastAtan2(float y, float x)
    return(angle* (180.0f / PI));
 }
 
+#define fp_is_neg(val) ((((byte*)&val)[3] & 0x80) != 0)
+
 float fastAtan2(float y, float x) // in deg
 {
-  #define fp_is_neg(val) ((((byte*)&val)[3] & 0x80) != 0)
   float z = y / x;
   int16_t zi = abs(int16_t(z * 100));
   int8_t y_neg = fp_is_neg(y);
@@ -46,7 +78,6 @@ float fastAtan2(float y, float x) // in deg
 
 //inline
 int16_t _atan2(float y, float x){
-  #define fp_is_neg(val) ((((uint8_t*)&val)[3] & 0x80) != 0)
   float z = y / x;
   int16_t zi = abs(int16_t(z * 100)); 
   int8_t y_neg = fp_is_neg(y);
@@ -71,6 +102,11 @@ int8_t sgn(int val) {
   return 1;
 }
 
+double sgn(double val) {
+  if (val < 0.0f) return -1.0f;
+  if (val==0.0f) return 0.0f;
+  return 1.0f;
+}
 
 //inline int32_t constrain_int32(int32_t x , int32_t l, int32_t h) {
 //  if (x <= l) {
@@ -94,7 +130,7 @@ inline float Rajan_FastArcTan(float x) {
 inline float Rajan_FastArcTan2(float y, float x) {
 
   uint8_t qCode;
-  float pi_2 = PI/2.0;
+  const float pi_2 = PI/2.0;
   float q;
   float z;
 
@@ -154,3 +190,57 @@ int32_t Rajan_FastArcTan2_deg1000(float y, float x) {
 //}
 
 
+
+
+/*
+ * The width of the CRC calculation and result.
+ * Modify the typedef for a 16 or 32-bit CRC standard.
+ * Thanks to
+ * http://www.barrgroup.com/Embedded-Systems/How-To/CRC-Calculation-C-Code
+ *
+ */
+ 
+#define WIDTH  (8 * sizeof(crc))
+#define TOPBIT (1 << (WIDTH - 1))
+
+crc crcSlow(uint8_t const message[], int nBytes)
+{
+    crc  remainder = 0;	
+
+
+    /*
+     * Perform modulo-2 division, a byte at a time.
+     */
+    for (int byte = 0; byte < nBytes; ++byte)
+    {
+      
+        /*
+         * Bring the next byte into the remainder.
+         */
+        remainder ^= (message[byte] << (WIDTH - 8));
+
+        /*
+         * Perform modulo-2 division, a bit at a time.
+         */
+        for (uint8_t bit = 8; bit > 0; --bit)
+        {
+            /*
+             * Try to divide the current data bit.
+             */
+            if (remainder & TOPBIT)
+            {
+                remainder = (remainder << 1) ^ POLYNOMIAL;
+            }
+            else
+            {
+                remainder = (remainder << 1);
+            }
+        }
+    }
+
+    /*
+     * The final remainder is the CRC result.
+     */
+    return (remainder);
+
+}   /* crcSlow() */

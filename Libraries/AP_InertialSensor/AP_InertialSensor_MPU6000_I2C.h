@@ -22,8 +22,8 @@
 class AP_InertialSensor_MPU6000_I2C : public AP_InertialSensor
 {
 public:
-
-	AP_InertialSensor_MPU6000_I2C(HardwareI2C *i2c_dev, int interrupt_pin, FastSerial *ser_port);
+	//TEO 20130919 : added address parameter to be able to connect non-default ID
+	AP_InertialSensor_MPU6000_I2C(HardwareI2C *i2c_dev, int interrupt_pin, FastSerial *ser_port, uint8_t address);
 
     static void         dmp_init(); // Initialise MPU6000's DMP
     static void         dmp_reset();    // Reset the DMP (required for changes in gains or offsets to take effect)
@@ -49,8 +49,15 @@ public:
     // get_delta_time returns the time period in seconds overwhich the sensor data was collected
     uint32_t            get_delta_time_micros();
 
+
+    void get_raw_gyro(Vector3i * g);
+    void get_raw_acc(Vector3i * g);
+
 protected:
     uint16_t                    _init_sensor( AP_PeriodicProcess * scheduler, Sample_rate sample_rate );
+
+
+    static int16_t _last_raw[7];
 
 private:
 
@@ -77,6 +84,7 @@ private:
     static const uint8_t        _temp_data_index;
 
     static AP_PeriodicProcess*  _scheduler;             // pointer to scheduler so that we can suspend/resume scheduler when we pull data from the MPU6000
+
 
 
   static uint8_t _address;

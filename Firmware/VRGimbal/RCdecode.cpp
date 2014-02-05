@@ -4,12 +4,18 @@
 
 #include "main.h"
 
+#ifdef GIMBAL_ENABLE_RC
 
 // init RC config variables
 void initRC() {
-  rcLPF_tc = LOWPASS_K_FLOAT(config.rcLPF*0.1);
+	for (char id = 0; id < 3; id++)
+	{
+		rcLPF_tc[id] =  LOWPASS_K_FLOAT(config.profiles[0].rcConfig[id].LPF*0.1);
+	}
 }
 
+
+#ifndef RC_USE_LIBS
 // pinChange Int driven Functions
 
 void intDecodePWM_Ch0_rising();
@@ -81,45 +87,40 @@ void intDecodePWM(char chIdx, uint8 pinState)
   uint16_t pulseInPWMtmp;
 
 
-  if (pinState==HIGH)
-  {
-    microsRisingEdge[chIdx]= microsNow;
-  }
-  else
-  {
-    pulseInPWMtmp = (microsNow - microsRisingEdge[chIdx])/CC_FACTOR;
-    if ((pulseInPWMtmp >= MIN_RC) && (pulseInPWMtmp <= MAX_RC)) 
-    {
-      // update if within expected RC range
-      rcRxChannel[chIdx] = pulseInPWMtmp;
-      microsLastPWMUpdate[chIdx] = microsNow;
-      validRC[chIdx]=true;
-      updateRC[chIdx]=true;
-    }
-  }
+	rcData_t* data = 0; 
+	if (chIdx == config.rcChannelRoll)
+		data = &rcData[RC_DATA_ROLL];
+	else if (chIdx == config.rcChannelPitch)
+		data = &rcData[RC_DATA_PITCH];
+	else if (chIdx == config.rcChannelYaw)
+		data = &rcData[RC_DATA_YAW];
+	else if (chIdx == config.rcChannelResetRoll)
+		data = &rcData[RC_DATA_RESET_ROLL];
+	else if (chIdx == config.rcChannelResetPitch)
+		data = &rcData[RC_DATA_RESET_PITCH];
+	else if (chIdx == config.rcChannelResetYaw)
+		data = &rcData[RC_DATA_RESET_YAW];
+	if (data)
+	{
+		if (pinState==HIGH)
+		{
+			rcData->microsRisingEdge = microsNow;
+		}
+		else
+		{
+			rcData->microsLastUpdate = microsNow;
+			pulseInPWMtmp = (microsNow - rcData->microsRisingEdge)/CC_FACTOR;
+			if ((pulseInPWMtmp >= MIN_RC) && (pulseInPWMtmp <= MAX_RC)) 
+			{
+			  // update if within expected RC range
+			  rcData->rx = pulseInPWMtmp;
+			  rcData->valid=true;
+			  rcData->update=true;
+			}
+		}
+	}
 }
 
-
-// check for RC timout
-void checkPWMTimeout(char channelNum)
-{
-#ifdef RC_USE_LIBS
-	return;
-#endif
-
-  int32_t microsNow = micros();
-  int32_t microsLastUpdate;
-  cli();
-  microsLastUpdate = microsLastPWMUpdate[channelNum];
-  sei();
-  if (((microsNow - microsLastUpdate)/CC_FACTOR) > RC_TIMEOUT) 
-  {
-    microsLastPWMUpdate[channelNum] = microsNow;
-    rcRxChannel[channelNum] = config.rcMid;
-    validRC[channelNum]=false;
-    updateRC[channelNum]=true;
-  }
-}
 
 
 //******************************************
@@ -133,11 +134,7 @@ void intDecodePPM()
   uint16_t pulseInPPM;
 
   static char channel_idx = 0;
-  static bool rxPPMvalid = false;
 
-  // PinChangeInt prolog = pin till here = 17 us 
-  
-  // 45us
   pulseInPPM = (microsNow - microsPPMLastEdge)/CC_FACTOR;
   microsPPMLastEdge = microsNow;
 
@@ -145,75 +142,219 @@ void intDecodePPM()
   {
     // sync detected 
     channel_idx = 0;
-    if (rxPPMvalid)
-    {
-      microsLastPPMupdate = microsNow;
-    }
-    rxPPMvalid = false;
   }
   else if (channel_idx < RC_PPM_RX_MAX_CHANNELS)
   {      
-    if ((pulseInPPM >= MIN_RC) && (pulseInPPM <= MAX_RC)) 
-    {
-      rcRxChannel[channel_idx] = pulseInPPM;
-      validRC[channel_idx] = true;
-      updateRC[channel_idx] = true;
-      channel_idx++;
-    }  
-    else
-    {
-      rxPPMvalid = false;
+	rcData_t* data = 0; 
+	if (channel_idx == config.rcChannelRoll)
+		data = &rcData[RC_DATA_ROLL];
+	else if (channel_idx == config.rcChannelPitch) 
+		data = &rcData[RC_DATA_PITCH];
+	else if (channel_idx == config.rcChannelYaw)
+		data = &rcData[RC_DATA_YAW];
+	else if (channel_idx == config.rcChannelResetRoll)
+		data = &rcData[RC_DATA_RESET_ROLL];
+	else if (channel_idx == config.rcChannelResetPitch)
+		data = &rcData[RC_DATA_RESET_PITCH];
+	else if (channel_idx == config.rcChannelResetYaw)
+		data = &rcData[RC_DATA_RESET_YAW];
+	if (data)
+	{  
+      data->microsLastUpdate = microsNow;    
+      if ((pulseInPPM >= MIN_RC) && (pulseInPPM <= MAX_RC)) 
+      {
+        data->rx     = pulseInPPM;
+        data->valid  = true;
+        data->update = true;
+      }  
     }
+    channel_idx++;  
   }
 }
+#endif
 
-void checkPPMTimeout()
+//******************************************
+// PPM & PWM Decoder
+//******************************************
+
+// check for RC timout
+void checkRcTimeouts()
 {
 #ifdef RC_USE_LIBS
 	return;
-#endif
+#else
   int32_t microsNow = micros();
   int32_t microsLastUpdate;
-  cli();
-  microsLastUpdate = microsLastPPMupdate;
-  sei();
-  if (((microsNow - microsLastUpdate)/CC_FACTOR) > RC_TIMEOUT) 
+  for (char id = 0; id < RC_DATA_SIZE; id++)
   {
-    for (char i=0; i<RC_PPM_RX_MAX_CHANNELS; i++)
+    cli();
+    microsLastUpdate = rcData[id].microsLastUpdate;
+    sei();
+    if (rcData[id].valid && ((microsNow - microsLastUpdate)/CC_FACTOR) > RC_TIMEOUT) 
     {
-      rcRxChannel[i] = config.rcMid;
-      validRC[i] = false;
-      updateRC[i] = true;
+      rcData[id].rx     = config.rcMid;
+      rcData[id].valid  = false;
+      rcData[id].update = true;
     }
-    microsLastPPMupdate = microsNow;
   }
+#endif
 }
 
 
-#ifdef RC_USE_LIBS
+int getRCDataChannel(int index)
+{
+	switch (index)
+	{
+	case RC_DATA_ROLL:
+		return config.profiles[0].rcConfig[axisROLL].channel;
+		break;
+	case RC_DATA_PITCH:
+		return config.profiles[0].rcConfig[axisPITCH].channel;
+		break;
+	case RC_DATA_YAW:
+		return config.profiles[0].rcConfig[axisYAW].channel;
+		break;
+	case RC_DATA_RESET_ROLL:
+		return config.profiles[0].rcConfig[axisROLL].resetChannel;
+		break;
+	case RC_DATA_RESET_PITCH:
+		return config.profiles[0].rcConfig[axisPITCH].resetChannel;
+		break;
+	case RC_DATA_RESET_YAW:
+		return config.profiles[0].rcConfig[axisYAW].resetChannel;
+		break;
+	}
+	return -1;
+}
+
+
+uint32_t last_joystick[RC_DATA_SIZE] = {0};
+
 void updateRCsignals()
 {
+#ifdef RC_USE_LIBS
 	if (APM_RC.GetState() > 0){
-		for (unsigned char channel_idx = 0; channel_idx < RC_PPM_RX_MAX_CHANNELS; channel_idx++)
+//		for (unsigned char channel_idx = 0; channel_idx < RC_PPM_RX_MAX_CHANNELS; channel_idx++)
+//		{
+//
+//			rcData_t* data = 0;
+//			if (channel_idx == config.rcChannelRoll)
+//				data = &rcData[RC_DATA_ROLL];
+//			else if (channel_idx == config.rcChannelPitch)
+//				data = &rcData[RC_DATA_PITCH];
+//			else if (channel_idx == config.rcChannelYaw)
+//				data = &rcData[RC_DATA_YAW];
+//			else if (channel_idx == config.rcChannelResetRoll)
+//				data = &rcData[RC_DATA_RESET_ROLL];
+//			else if (channel_idx == config.rcChannelResetPitch)
+//				data = &rcData[RC_DATA_RESET_PITCH];
+//			else if (channel_idx == config.rcChannelResetYaw)
+//				data = &rcData[RC_DATA_RESET_YAW];
+//			if (data)
+//			{
+//				data->rx = APM_RC.InputCh(channel_idx);
+//				data->valid = true;
+//				data->update = true;
+//			}
+//		}
+
+		//anzichè scorrere tutti i canali della radio, vado a leggere direttamente quelli configurati
+		//in questo modo posso anche usare lo stesso canale per due funzioni contemporaneamente
+		//(utile per il resetAngle)
+		for (int ch = 0; ch < RC_DATA_SIZE; ch++)
 		{
-			rcRxChannel[channel_idx] = APM_RC.InputCh(channel_idx);
-			validRC[channel_idx] = true;
-			updateRC[channel_idx] = true;
+			int channel = getRCDataChannel(ch);
+
+			if ((channel >= 0) && (channel < RC_PPM_RX_MAX_CHANNELS))
+			{
+				rcData[ch].rx = APM_RC.InputCh(channel);
+				rcData[ch].valid = true;
+				rcData[ch].update = true;
+			}
+		}
+
+
+	}
+#endif
+
+	bool bJoystickUpdated = false; //eseguo solo una lettura per ciclo per non rallentare
+
+	uint32_t now = millis();
+
+
+	for (int ch = 0; ch < RC_DATA_SIZE; ch++)
+	{
+		int channel = getRCDataChannel(ch);
+
+		if (channel >= 100)
+		{
+			if ((!bJoystickUpdated) && ( now - last_joystick[ch] > MANUAL_INPUT_UPDATE_INTERVAL))
+			{
+				last_joystick[ch] = now;
+				bJoystickUpdated = true;
+				uint8 axis = channel - 100;
+				rcData[ch].rx = getManCmdAxisRC(axis);
+				rcData[ch].valid = true;
+				rcData[ch].update = true;
+			}
 		}
 	}
+
+//
+//	//qui provo con i canali joystick
+//	if (config.rcChannelRoll >= 100)
+//	{
+//		if ((!bJoystickUpdated) && ( now - last_joystick_roll > MANUAL_INPUT_UPDATE_INTERVAL))
+//		{
+//			last_joystick_roll = now;
+//			bJoystickUpdated = true;
+//			uint8 axis = config.rcChannelRoll - 100;
+//			rcData[RC_DATA_ROLL].rx = getManCmdAxisRC(axis);
+//			rcData[RC_DATA_ROLL].valid = true;
+//			rcData[RC_DATA_ROLL].update = true;
+//		}
+//	}
+//
+//	if (config.rcChannelPitch >= 100)
+//	{
+//		if ((!bJoystickUpdated) && ( now - last_joystick_pitch > MANUAL_INPUT_UPDATE_INTERVAL))
+//		{
+//			last_joystick_pitch = now;
+//			bJoystickUpdated = true;
+//
+//			uint8 axis = config.rcChannelPitch - 100;
+//			rcData[RC_DATA_PITCH].rx = getManCmdAxisRC(axis);
+//			rcData[RC_DATA_PITCH].valid = true;
+//			rcData[RC_DATA_PITCH].update = true;
+//		}
+//	}
+//	if (config.rcChannelYaw >= 100)
+//	{
+//		if ((!bJoystickUpdated) && ( now - last_joystick_yaw > MANUAL_INPUT_UPDATE_INTERVAL))
+//		{
+//			last_joystick_yaw = now;
+//			bJoystickUpdated = true;
+//
+//			uint8 axis = config.rcChannelYaw - 100;
+//			rcData[RC_DATA_YAW].rx = getManCmdAxisRC(axis);
+//			rcData[RC_DATA_YAW].valid = true;
+//			rcData[RC_DATA_YAW].update = true;
+//		}
+//	}
+
 }
-#endif
+
 
 // initialize RC Pin mode
 void initRCPins()
 {  
 
 #ifdef RC_USE_LIBS
-	if (config.rcModePPM)
+	if (config.profiles[0].rcModePPM)
 	{
-		APM_RC.Init(12, NULL, &Serial);
+		APM_RC.Init(12, NULL, cliSerial);
 	} else {
-		APM_RC.Init(2, NULL, &Serial);
+		APM_RC.Init(2, NULL, cliSerial);
 	}
 #else
   if (config.rcModePPM)
@@ -240,126 +381,90 @@ void initRCPins()
     attachInterrupt(BOARD_PWM_IN3, &intDecodePWM_Ch3_rising, RISING);
   }
 #endif
+
+  for (char id = 0; id < RC_DATA_SIZE; id++)
+  {
+    cli();
+    rcData[id].microsRisingEdge = 0;
+    rcData[id].microsLastUpdate = 0;
+    rcData[id].rx               = 1500;
+    rcData[id].update           = true;
+    rcData[id].valid            = true;
+    rcData[id].rcSpeed          = 0.0;
+    rcData[id].setpoint         = 0.0;
+    sei();
+  }
 }
 
-// Proportional RC control
-void evaluateRCSignalProportional()
+//******************************************
+// Proportional
+//******************************************
+
+void evalRCChannelProportional(rcData_t* rcData, int16_t rcGain, int16_t rcMid)
 {
-#ifdef RC_USE_LIBS
-	updateRCsignals();
-#endif
-
-	int16_t rxData;
-
-	#define RCSTOP_ANGLE 5.0
-
-	rxData = rcRxChannel[config.rcChannelPitch];
-	if(updateRC[config.rcChannelPitch]==true)
-	{
-		if(rxData >= config.rcMid+RC_DEADBAND)
-		{
-			pitchRCSpeed = config.rcGain * (float)(rxData - (config.rcMid + RC_DEADBAND))/ (float)(MAX_RC - (config.rcMid + RC_DEADBAND)) + 0.9 * pitchRCSpeed;
-		}
-		else if(rxData <= config.rcMid-RC_DEADBAND)
-		{
-			pitchRCSpeed = -config.rcGain * (float)((config.rcMid - RC_DEADBAND) - rxData)/ (float)((config.rcMid - RC_DEADBAND)-MIN_RC) + 0.9 * pitchRCSpeed;
-		}
-		else
-		{
-			pitchRCSpeed = 0.0;
-		}
-		pitchRCSpeed = constrain(pitchRCSpeed, -2 * ANGLE_PRECISION, +2 * ANGLE_PRECISION);  // constrain for max speed
-		updateRC[config.rcChannelPitch] = false;
-	}
-
-	rxData = rcRxChannel[config.rcChannelRoll];
-	if(updateRC[config.rcChannelRoll]==true)
-	{
-
-		if(rxData >= config.rcMid+RC_DEADBAND)
-		{
-			rollRCSpeed = config.rcGain * (float)(rxData - (config.rcMid + RC_DEADBAND))/ (float)(MAX_RC - (config.rcMid + RC_DEADBAND)) + 0.9 * rollRCSpeed;
-		}
-		else if(rxData <= config.rcMid-RC_DEADBAND)
-		{
-			rollRCSpeed = -config.rcGain * (float)((config.rcMid - RC_DEADBAND) - rxData)/ (float)((config.rcMid - RC_DEADBAND)-MIN_RC) + 0.9 * rollRCSpeed;
-		}
-		else
-		{
-			rollRCSpeed = 0.0;
-		}
-		rollRCSpeed = constrain(rollRCSpeed, -2 * ANGLE_PRECISION, +2 * ANGLE_PRECISION);  // constrain for max speed
-		updateRC[config.rcChannelRoll] = false;
-	}
-
-	rxData = rcRxChannel[config.rcChannelYaw];
-	if(updateRC[config.rcChannelYaw]==true)
-	{
-		if(rxData >= config.rcMid+RC_DEADBAND)
-		{
-			yawRCSpeed = config.rcGain * (float)(rxData - (config.rcMid + RC_DEADBAND))/ (float)(MAX_RC - (config.rcMid + RC_DEADBAND)) + 0.9 * yawRCSpeed;
-		}
-		else if(rxData <= config.rcMid-RC_DEADBAND)
-		{
-			yawRCSpeed = -config.rcGain * (float)((config.rcMid - RC_DEADBAND) - rxData)/ (float)((config.rcMid - RC_DEADBAND)-MIN_RC) + 0.9 * yawRCSpeed;
-		}
-		else
-		{
-			yawRCSpeed = 0.0;
-		}
-		yawRCSpeed = constrain(yawRCSpeed, -2 * ANGLE_PRECISION, + 2 * ANGLE_PRECISION);  // constrain for max speed
-		updateRC[config.rcChannelYaw] = false;
-	}
+  if(rcData->update == true)
+  {
+    if(rcData->rx >= rcMid + RC_DEADBAND)
+    {
+      rcData->rcSpeed = rcGain * (float)(rcData->rx - (rcMid + RC_DEADBAND))/ (float)(MAX_RC - (rcMid + RC_DEADBAND)) + 0.9 * rcData->rcSpeed;
+    }
+    else if(rcData->rx <= rcMid-RC_DEADBAND)
+    {
+      rcData->rcSpeed = -rcGain * (float)((rcMid - RC_DEADBAND) - rcData->rx)/ (float)((rcMid - RC_DEADBAND)-MIN_RC) + 0.9 * rcData->rcSpeed;
+    }
+    else
+    {
+      rcData->rcSpeed = 0.0;
+    }
+    rcData->rcSpeed = constrain(rcData->rcSpeed, -200.0f, +200.0f);  // constrain for max speed
+    rcData->update = false;
+  }
 }
 
-// Absolute RC control
-void evaluateRCSignalAbsolute()
+
+
+
+//******************************************
+// Absolute
+//******************************************
+
+inline void evalRCChannelAbsolute(rcData_t* rcData, int16_t rcMin, int16_t rcMax, int16_t rcMid)
 {
-#ifdef RC_USE_LIBS
-	updateRCsignals();
-#endif
-
-    int16_t rxData;
-    
-  // Get Setpoint from RC-Channel if available.
-  // LPF on pitchSetpoint
-  rxData = rcRxChannel[config.rcChannelPitch];
-  if(updateRC[config.rcChannelPitch]==true)
+  float k;
+  float y0;
+  int16_t rx;
+  
+  if(rcData->update == true)
   {
-    utilLP_float(&pitchRCSetpoint, (config.minRCPitch + (float)(rxData - MIN_RC)/(float)(MAX_RC - MIN_RC) * (config.maxRCPitch - config.minRCPitch)), 0.05);
-    updateRC[config.rcChannelPitch] = false;
-  }
-
-  // LPF on rollSetpoint
-  rxData = rcRxChannel[config.rcChannelRoll];
-  if(updateRC[config.rcChannelRoll]==true)
-  {
-    utilLP_float(&rollRCSetpoint, (float)(config.minRCRoll + (float)(rxData - MIN_RC)/(float)(MAX_RC - MIN_RC) * (config.maxRCRoll - config.minRCRoll)), 0.05);
-    updateRC[config.rcChannelRoll] = false;
-  }
-
-  // LPF on yawSetpoint
-  rxData = rcRxChannel[config.rcChannelYaw];
-  if(updateRC[config.rcChannelYaw]==true)
-  {
-    utilLP_float(&yawRCSetpoint, (float)(config.minRCYaw + (float)(rxData - MIN_RC)/(float)(MAX_RC - MIN_RC) * (config.maxRCYaw - config.minRCYaw)), 0.05);
-    updateRC[config.rcChannelYaw] = false;
+    k = (float)(rcMax - rcMin)/(float)(MAX_RC - MIN_RC);
+    y0 = rcMin + k * (float)(MID_RC - MIN_RC);
+    rx = rcData->rx - rcMid;
+    utilLP_float(&rcData->setpoint, y0 + k * (float) rx, 0.05f);
+    rcData->update = false;
   }
 }
 
+// RC control
+
+void evaluateRC()
+{
+
+	updateRCsignals();
+
+	for (char id = 0; id < 3; id++)
+	{
+		if (config.profiles[0].rcConfig[id].absolute)
+			evalRCChannelAbsolute(&rcData[id], config.profiles[0].rcConfig[id].minOutput, config.profiles[0].rcConfig[id].maxOutput, config.profiles[0].rcMid);
+		else
+			evalRCChannelProportional(&rcData[id], config.profiles[0].rcConfig[id].gain, config.profiles[0].rcMid);
+	}
+
+	evalRCChannelAbsolute(&rcData[RC_DATA_RESET_ROLL], 0, 1, config.profiles[0].rcMid + RC_DEADBAND);
+	evalRCChannelAbsolute(&rcData[RC_DATA_RESET_PITCH], 0, 1, config.profiles[0].rcMid + RC_DEADBAND);
+	evalRCChannelAbsolute(&rcData[RC_DATA_RESET_YAW], 0, 1, config.profiles[0].rcMid + RC_DEADBAND);
 
 
+}
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+#endif

@@ -48,6 +48,15 @@ THE SOFTWARE.
 
 #include "wirish.h"
 
+
+//per la calibrazione aggiungo questi:
+#define GRAVITY 9.80665
+//#define MPU6000_ACCEL_SCALE_1G  (GRAVITY / (4 * 4096.0))  //--> scalatura per fondo scala 2G
+#define MPU6000_ACCEL_SCALE_1G  (GRAVITY / 4096.0)  //--> scalatura per fondo scala 8G
+
+
+
+
 // !!! Moved to config.h
 #define MPU6050_ADDRESS_AD0_LOW     0x68 // address pin low (GND), default for InvenSense evaluation board
 #define MPU6050_ADDRESS_AD0_HIGH    0x69 // address pin high (VCC)
@@ -587,6 +596,7 @@ class MPU6050 {
         // ACCEL_*OUT_* registers
         void getMotion9(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int16_t* gy, int16_t* gz, int16_t* mx, int16_t* my, int16_t* mz);
         void getMotion6(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int16_t* gy, int16_t* gz);
+        void getMotion7(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int16_t* gy, int16_t* gz, int16_t* t);
         void getAcceleration(int16_t* x, int16_t* y, int16_t* z);
         int16_t getAccelerationX();
         int16_t getAccelerationY();

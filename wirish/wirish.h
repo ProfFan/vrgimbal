@@ -53,6 +53,7 @@
 #include "HardwareI2C.h"
 #include "HardwareSPI.h"
 #include "HardwareTimer.h"
+#include "USBSerial.h"
 #endif
 
 /* Arduino wiring macros and bit defines  */

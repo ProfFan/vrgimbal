@@ -111,6 +111,7 @@
 /* #define SYSCLK_FREQ_24MHz  24000000 */ 
 /* #define SYSCLK_FREQ_36MHz  36000000 */
 /* #define SYSCLK_FREQ_48MHz  48000000 */
+#define SYSCLK_FREQ_48MHz_HSI  48000000
 /* #define SYSCLK_FREQ_56MHz  56000000 */
 /* #define SYSCLK_FREQ_72MHz  72000000 */
 #endif
@@ -156,6 +157,8 @@
   uint32_t SystemCoreClock         = SYSCLK_FREQ_36MHz;        /*!< System Clock Frequency (Core Clock) */
 #elif defined SYSCLK_FREQ_48MHz
   uint32_t SystemCoreClock         = SYSCLK_FREQ_48MHz;        /*!< System Clock Frequency (Core Clock) */
+#elif defined SYSCLK_FREQ_48MHz_HSI
+  uint32_t SystemCoreClock         = SYSCLK_FREQ_48MHz_HSI;        /*!< System Clock Frequency (Core Clock) */
 #elif defined SYSCLK_FREQ_56MHz
   uint32_t SystemCoreClock         = SYSCLK_FREQ_56MHz;        /*!< System Clock Frequency (Core Clock) */
 #elif defined SYSCLK_FREQ_72MHz
@@ -183,6 +186,8 @@ static void SetSysClock(void);
   static void SetSysClockTo36(void);
 #elif defined SYSCLK_FREQ_48MHz
   static void SetSysClockTo48(void);
+#elif defined SYSCLK_FREQ_48MHz_HSI
+  static void SetSysClockTo48_HSI(void);
 #elif defined SYSCLK_FREQ_56MHz
   static void SetSysClockTo56(void);  
 #elif defined SYSCLK_FREQ_72MHz
@@ -426,6 +431,8 @@ static void SetSysClock(void)
   SetSysClockTo36();
 #elif defined SYSCLK_FREQ_48MHz
   SetSysClockTo48();
+#elif defined SYSCLK_FREQ_48MHz_HSI
+  SetSysClockTo48_HSI();
 #elif defined SYSCLK_FREQ_56MHz
   SetSysClockTo56();  
 #elif defined SYSCLK_FREQ_72MHz
@@ -874,6 +881,83 @@ static void SetSysClockTo48(void)
   } 
 }
 
+#elif defined SYSCLK_FREQ_48MHz_HSI
+/**
+  * @brief  Sets System clock frequency to 64MHz and configure HCLK, PCLK2 and PCLK1 prescalers with HSI.
+  * @note   This function should be used only after reset.
+  * @param  None
+  * @retval None
+  */
+static void SetSysClockTo48_HSI(void)
+{
+  __IO uint32_t StartUpCounter = 0, HSIStatus = 0;
+
+  /* SYSCLK, HCLK, PCLK2 and PCLK1 configuration ---------------------------*/
+  /* Enable HSI */
+  RCC->CR |= ((uint32_t)RCC_CR_HSION);
+
+  /* Wait till HSI is ready and if Time out is reached exit */
+  do
+  {
+    HSIStatus = RCC->CR & RCC_CR_HSIRDY;
+    StartUpCounter++;
+  } while((HSIStatus == 0) && (StartUpCounter != HSE_STARTUP_TIMEOUT));
+
+  if ((RCC->CR & RCC_CR_HSIRDY) != RESET)
+  {
+    HSIStatus = (uint32_t)0x01;
+  }
+  else
+  {
+    HSIStatus = (uint32_t)0x00;
+  }
+
+  if (HSIStatus == (uint32_t)0x01)
+  {
+    /* Enable Prefetch Buffer */
+    FLASH->ACR |= FLASH_ACR_PRFTBE;
+
+    /* Flash 2 wait state */
+    FLASH->ACR &= (uint32_t)((uint32_t)~FLASH_ACR_LATENCY);
+    FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_2;
+
+
+    /* HCLK = SYSCLK */
+    RCC->CFGR |= (uint32_t)RCC_CFGR_HPRE_DIV1;
+
+    /* PCLK2 = HCLK */
+    RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE2_DIV1;
+
+    /* PCLK1 = HCLK */
+    RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE1_DIV2;
+
+    /*  PLL configuration: PLLCLK = HSI * 9 = 72 MHz */
+    RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLMULL | RCC_CFGR_USBPRE | RCC_CFGR_PLLXTPRE));
+    RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSI_Div2 | RCC_CFGR_PLLMULL12 | RCC_CFGR_USBPRE | 0x00);
+
+    /* Enable PLL */
+    RCC->CR |= RCC_CR_PLLON;
+
+    /* Wait till PLL is ready */
+    while((RCC->CR & RCC_CR_PLLRDY) == 0)
+    {
+    }
+
+    /* Select PLL as system clock source */
+    RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_SW));
+    RCC->CFGR |= (uint32_t)RCC_CFGR_SW_PLL;
+
+    /* Wait till PLL is used as system clock source */
+    while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != (uint32_t)0x08)
+    {
+    }
+  }
+  else
+  { /* If HSI fails to start-up, the application will have wrong clock
+         configuration. User can add here some code to deal with this error */
+  }
+}
+
 #elif defined SYSCLK_FREQ_56MHz
 /**
   * @brief  Sets System clock frequency to 56MHz and configure HCLK, PCLK2 
@@ -975,6 +1059,7 @@ static void SetSysClockTo56(void)
          configuration. User can add here some code to deal with this error */
   } 
 }
+
 
 #elif defined SYSCLK_FREQ_72MHz
 /**

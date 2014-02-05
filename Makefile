@@ -5,25 +5,13 @@
 SRCROOT := .
 
 
-#CONFIG := BruGi_049B_r61
-#CONFIG := BruGi_049B_r69
-CONFIG := BruGi_049B_r69b
+IMU_TYPE := EVV # AP
+CONFIG := VR_Gimbal_1_13
 
-ifeq ($(CONFIG), BruGi_049B_r61)
-BOARD            := laserlab_VR_GIMBAL_F1
-PROJECT          := BruGi_049B_r61
-endif
-
-ifeq ($(CONFIG), BruGi_049B_r69)
-BOARD            := laserlab_VR_GIMBAL_F1
-PROJECT          := BruGi_049B_r69
-endif
-
-ifeq ($(CONFIG), BruGi_049B_r69b)
+ifeq ($(CONFIG), VR_Gimbal_1_13)
 BOARD            := laserlab_VR_GIMBAL_F1
 PROJECT          := VRGimbal
 endif
-
 FIRMWARE_PATH    := $(SRCROOT)/Firmware/$(PROJECT)
 
 #MEMORY_TARGET    ?= jtag
@@ -33,7 +21,7 @@ MEMORY_TARGET    ?= dfu
 ## Useful paths, constants, etc.
 ##
 
-BUILD_PATH       := $(SRCROOT)/build
+BUILD_PATH       := $(SRCROOT)/$(FIRMWARE_PATH)/build
 # Support files for linker and Makefile
 SUPPORT_PATH     := $(SRCROOT)/support
 # Support files for linker
@@ -81,12 +69,13 @@ GLOBAL_FLAGS    += -D$(MCU_DENSITY)
 GLOBAL_FLAGS    += -D$(DENSITY)
 GLOBAL_FLAGS    += -D$(VECT_BASE_ADDR)
 GLOBAL_FLAGS    += -DUSE_STDPERIPH_DRIVER
-GLOBAL_FLAGS    += -DHSE_VALUE=8000000
+#GLOBAL_FLAGS    += -DHSE_VALUE=8000000
 # GLOBAL_CFLAGS -----------------------------------------------------------------------------------
 GLOBAL_CFLAGS   := $(cpu_flags)
 GLOBAL_CFLAGS   += -mthumb                #Generate code for the Thumb instruction set
 GLOBAL_CFLAGS   += -Wall                  #This enables all the warnings about constructions that some users consider questionable, and that are easy to avoid (or modify to prevent the warning), even in conjunction with macros
-GLOBAL_CFLAGS   += -ggdb                  #Produce debugging information in the operating system’s native format
+#GLOBAL_CFLAGS   += -ggdb                  #Produce debugging information in the operating system’s native format
+#GLOBAL_CFLAGS   +=  -O2					#Compilazione con ottimizzazione per velocità di esecuzione
 GLOBAL_CFLAGS   += -ffunction-sections
 GLOBAL_CFLAGS   += -fdata-sections
 GLOBAL_CFLAGS   += $(GLOBAL_FLAGS)
@@ -123,11 +112,13 @@ include $(SUPPORT_PATH)/make/build-templates.mk
 
 # Try to keep LIBMAPLE_MODULES a simply-expanded variable
 # Official libraries:
+LIBRARY_MODULES := 
 LIBRARY_MODULES := $(STM32_PATH)
 LIBRARY_MODULES += $(HAL_PATH)
 LIBRARY_MODULES += $(WIRISH_PATH)
 
 # Official libraries:
+ifeq ($(IMU_TYPE), AP)
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AC_PID
 #LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_ADC
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_AHRS
@@ -144,6 +135,7 @@ LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_GPS
 #LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_GSM
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_InertialSensor
 #LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_InertialNav
+#LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_LANC
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Math
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Menu
 #LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Motors
@@ -172,8 +164,19 @@ LIBRARY_MODULES += $(LIBRARIES_PATH)/Filter
 #LIBRARY_MODULES += $(LIBRARIES_PATH)/RC_Channel
 #LIBRARY_MODULES += $(LIBRARIES_PATH)/Trig_LUT
 #LIBRARY_MODULES += $(LIBRARIES_PATH)/Waypoints
-
 #LIBRARY_MODULES += $(LIBRARIES_PATH)/I2C
+else
+#IMU_TYPE NOT AP
+
+LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Common
+#LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Compass
+#LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Declination
+LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Math
+LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Progmem
+LIBRARY_MODULES += $(LIBRARIES_PATH)/APM_RC
+LIBRARY_MODULES += $(LIBRARIES_PATH)/Arduino_Mega_ISR_Registry
+LIBRARY_MODULES += $(LIBRARIES_PATH)/EEPROM
+endif
 
 # Firmware libraries:
 LIBRARY_MODULES += $(FIRMWARE_PATH)

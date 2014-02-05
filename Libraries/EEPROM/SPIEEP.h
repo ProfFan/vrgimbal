@@ -33,9 +33,9 @@
 #include <wirish.h>
 
 
-#define AT25010		//Defines the EEPROM AT25010
+//#define AT25010		//Defines the EEPROM AT25010
 //#define AT25020		//Defines the EEPROM AT25020
-//#define AT25040		//Defines the EEPROM AT25040
+#define AT25040		//Defines the EEPROM AT25040
 
 
 #if defined (AT25010)

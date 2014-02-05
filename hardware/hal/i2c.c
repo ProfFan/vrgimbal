@@ -378,7 +378,10 @@ static void i2cUnstick(i2c_dev *dev)
 
 static void I2C_delay(void)
 {
-    volatile int i = 7;
+	//TEO 20130822 : provo a "rallentare" la i2C per i 32MHz
+//    volatile int i = 28;
+//    volatile int i = 7;  //pare ok a 8MHz
+	volatile int i = 1;
     while (i)
         i--;
 }
