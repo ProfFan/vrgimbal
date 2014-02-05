@@ -1,39 +1,38 @@
-
+/// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 /*
-Brushless Gimbal Controller Software by Christian Winkler and Alois Hahn (C) 2013
+    This file is part of VRGimbal by VirtualRobotix Italia s.c.a.r.l..
 
-Brushless Gimbal Controller Hardware and Software support 
-by Ludwig FÃ¤erber, Alexander Rehfeld and Martin Eckart
+    VRGimbal is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-Project homepage: http://brushlessgimbal.de/
-Discussions:
-http://fpv-community.de/showthread.php?20795-Brushless-Gimbal-Controller-SOFTWARE
-http://fpv-community.de/showthread.php?22617-Gimbal-Brushless-Controller-V3-0-50x50mm-by-Martinez
-http://fpv-community.de/showthread.php?19252-Brushless-Gimbal-Controller
+    VRGimbal is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-any later version. see <http://www.gnu.org/licenses/>
-
-Anyhow, if you start to commercialize our work, please read on http://code.google.com/p/brushless-gimbal/ on how to contribute
-
-// I2Cdev library collection - MPU6050 I2C device class
-// Based on InvenSense MPU-6050 register map document rev. 2.0, 5/19/2011 (RM-MPU-6000A-00)
-// 10/3/2011 by Jeff Rowberg <jeff@rowberg.net>
-// Updates should (hopefully) always be available at https://github.com/jrowberg/i2cdevlib
+    You should have received a copy of the GNU General Public License
+    along with VRGimbal.  If not, see <http://www.gnu.org/licenses/>.
 */
-
-
-// FOR CHANGES PLEASE READ: ReleaseHistory.txt
-
-// Serial Programming for Settings!!!
-/* HOWTO:
-- edit setDefaultParameters() in variables.h if you want to.
-- Upload Firmware.
-- Open Arduino Terminal and enable NL in the lower right corner of the window.
-- Type in HE 
--... enjoy
+/*
+ * VRGimbal code is based on the project:
+ *        Brushless Gimbal Controller Software by Christian Winkler and Alois Hahn (C) 2013
+ *        and
+ *        APM:Copter HTTP:///www.ardupilot.com
+ *
+ * 	Project lead developer and creator: Matteo Murtas - LaserNavigation s.r.l.
+ *
+ * 	Developers:
+ * 	Roberto Navoni
+ * 	Emile Castelnuovo
+ *
+ * 	Please refer to http://vrgimbal.wordpress.com for more information
+ *
+ * 	Thanks to:
+ * 	LeafLabs (www.leaflabs.com) for Wirish Libraries
+ * 	APM dev team
+ *
 */
 
 

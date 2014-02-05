@@ -1,3 +1,23 @@
+/// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
+/*
+    This file is part of VRGimbal by VirtualRobotix Italia s.c.a.r.l..
+
+    VRGimbal is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    VRGimbal is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with VRGimbal.  If not, see <http://www.gnu.org/licenses/>.
+
+    Please refer to http://vrgimbal.wordpress.com for more information
+*/
+
 // **************************************************
 // Simplified IMU based on "Complementary Filter"
 // Inspired by http://starlino.com/imu_guide.html
@@ -184,7 +204,7 @@ float _readGyros_lap = 0.0f;
 
 void readGyros() {
 	int16_t axisRot[3];
-	char idx;
+	unsigned char idx;
 	int i;
 
 
@@ -245,7 +265,7 @@ void readGyros() {
 
 void readACC(axisDef axis) {
 	// get acceleration
-	char idx;
+	unsigned char idx;
 	int16_t val;
 	idx = sensorDef.Acc[axis].idx;
 	val = mpu.getAccelerationN(idx);  // TODO: 370us

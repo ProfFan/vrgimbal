@@ -1,3 +1,23 @@
+/// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
+/*
+    This file is part of VRGimbal by VirtualRobotix Italia s.c.a.r.l..
+
+    VRGimbal is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    VRGimbal is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with VRGimbal.  If not, see <http://www.gnu.org/licenses/>.
+
+    Please refer to http://vrgimbal.wordpress.com for more information
+*/
+
 /**
  * SerialCommand - A Wiring/Arduino library to tokenize and parse commands
  * received over a serial port.
@@ -143,8 +163,9 @@ void SerialCommand::readSerial() {
 			  #endif
 
 			  // Compare the found command against the list of known commands for a match
-			  for (int i = 0; command[i] != '\0'; i++)   // as no strnicmp exists ...
-				command[i] = (char)tolower(command[i]);
+			  for (int u = 0; command[u] != '\0'; u++)   // as no strnicmp exists ...
+				command[u] = (char)tolower(command[u]);
+
 			  if (strncmp(command, commandList[i].command, SERIALCOMMAND_MAXCOMMANDLENGTH) == 0) {
 				#ifdef SERIALCOMMAND_DEBUG
 				  _ser_port->print(F("Matched Command: "));
