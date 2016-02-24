@@ -17,7 +17,7 @@
 */
 /*
  * VRGimbal code is based on the project:
- *        Brushless Gimbal Controller Software by Christian Winkler and Alois Hahn (C) 2013
+ *        Brushless Gimbal Controller (BruGi) Software by Christian Winkler and Alois Hahn (C) 2013
  *        and
  *        APM:Copter HTTP:///www.ardupilot.com
  *
@@ -1122,7 +1122,7 @@ void loop()
 
 
 #ifndef BRUGI_USE_INTERRUPT_TIMER
-		//attuazione (spostata qui sotto in modo che sia più immediata e allineata con i LAP calcolati qui sopra)
+		//attuazione (spostata qui sotto in modo che sia piÃ¹ immediata e allineata con i LAP calcolati qui sopra)
 		motorInterrupt();
 #endif
 
