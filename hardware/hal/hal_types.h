@@ -16,7 +16,7 @@ typedef int64_t int64;
 typedef void (*voidFuncPtr)(void);
 
 #define __attr_flash
-#define __packed
+//#define __packed
 //#define __attr_flash __attribute__((section(".DataFlash")))
 //#define __attr_flash __attribute__((section(".USER_FLASH")))
 //#define __packed __attribute__((__packed__))
