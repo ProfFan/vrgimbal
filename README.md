@@ -1,6 +1,8 @@
 # The VRGimbal Firmware
 
-TODO
+## Compile
+
+Install the latest `gcc-arm-none-eabi` and use `make` to compile.
 
 # Source
 
